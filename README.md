@@ -1,79 +1,88 @@
-# Bibli — Serviço de Reconhecimento de Livros 📷
+# 👁️ BIBLI — Visão Computacional (2ª Camada de Segurança)
 
-Microserviço de **visão computacional** para validação de devolutiva de livros na biblioteca.
+Este microserviço é o coração da **2ª camada de segurança** da biblioteca inteligente. Ele utiliza inteligência artificial avançada (**YOLOv8**) para garantir fisicamente que o aluno devolveu o livro na mesa após bipar a tag RFID.
 
-Funciona como **segunda camada de segurança**: após o aluno bipar a tag RFID, a câmera verifica se o livro foi realmente deixado na mesa de devolução.
-
----
-
-## Como Funciona
-
-1. **Calibração**: Com a mesa **vazia**, chame `POST /calibrate`. Isso salva uma foto da mesa limpa como referência.
-2. **Verificação**: Quando o aluno coloca o livro na mesa, chame `POST /verify`. O serviço compara o frame atual com a referência usando **detecção de contornos (OpenCV)**.
-3. **Resultado**: Se um objeto retangular grande apareceu na imagem → `book_detected: true`.
+Ele foi construído de forma **Stateful e Assíncrona**, o que significa que ele hiberna para não consumir CPU da máquina, ligando a IA e a câmera **apenas** quando a API principal autoriza, aguarda a validação ininterrupta de 10 segundos, e responde via Webhook.
 
 ---
 
-## Pré-requisitos
+## 🛠️ Stack Tecnológica
 
+- **FastAPI** — Motor HTTP assíncrono super veloz.
+- **YOLOv8 (Ultralytics)** — Rede neural de detecção de objetos (treinada em nano scale para rodar sem GPU).
+- **OpenCV** — Captura e processamento do feed da webcam.
+- **Asyncio / Threading** — Máquina de estados executando em loop limpo.
+
+---
+
+## 🚀 Como Iniciar Localmente
+
+### 1. Pré-requisitos
 - Python 3.10+
-- Webcam conectada à máquina
+- Webcam conectada (pode ser configurada via `.env`)
 
-## Instalação
-
+### 2. Instalação
+Clone o projeto e instale as dependências.
 ```bash
-cd recocnize-livros
 pip install -r requirements.txt
 ```
 
-## Rodar
-
+### 3. Rodando o Servidor
+Execute com o Uvicorn. O servidor subirá na porta 8000.
 ```bash
-python main.py
+python -m uvicorn main:app --port 8000
 ```
-
-O serviço inicia em `http://localhost:8000`.
-
-**Swagger:** [http://localhost:8000/docs](http://localhost:8000/docs)
+> **Dica:** Abra `http://localhost:8000` no navegador para ver a interface gráfica do estado da câmera!
 
 ---
 
-## Endpoints
+## 🔌 Guia de Integração para a API (Backend)
 
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| `GET` | `/health` | Health check + status da calibração |
-| `POST` | `/calibrate` | Captura mesa vazia como baseline |
-| `POST` | `/verify` | Verifica se há livro na mesa |
-| `GET` | `/snapshot` | Frame atual da câmera (JPEG, para debug) |
+O fluxo de comunicação entre a API Principal (ex: NestJS) e este Serviço de Visão acontece em três etapas:
 
-### Exemplo de resposta (`POST /verify`)
+### Passo 1: O Despertar da Câmera
+Quando o aluno bipa a tag RFID para devolução, a API Principal **NÃO** deve finalizar o empréstimo ainda. A API deve chamar o nosso serviço para acordar a IA:
 
+`POST /start-vision`
 ```json
 {
-  "book_detected": true,
-  "confidence": 0.87,
-  "contours_found": 1,
-  "message": "Livro detectado na mesa (1 objeto(s) encontrado(s))."
+  "session_id": "uuid-da-sessao",
+  "webhook_url": "http://sua-api-principal:3000/api/sessions/webhook/vision-confirm"
 }
 ```
+**O que acontece?** A tela da câmera destrava, o YOLOv8 acorda e fica esperando o livro aparecer na mesa.
+
+### Passo 2: O Cronômetro de Validação (Fluxo Físico)
+O aluno coloca o livro na frente da câmera. O YOLOv8 detecta o objeto e inicia uma **contagem ininterrupta de 10 segundos**. 
+> 🚨 **Sistema Antifraude:** Se o aluno tirar o livro ou tapar a câmera no segundo 9, o timer zera! O livro precisa ficar **10 segundos parados e visíveis**.
+
+### Passo 3: O Webhook de Sucesso (A Confirmação)
+Quando os 10 segundos expiram de forma limpa, este serviço Python faz uma requisição HTTP automaticamente para a URL que a sua API enviou no Passo 1:
+
+`POST {webhook_url}`
+```json
+{
+  "session_id": "uuid-da-sessao",
+  "visionVerified": true,
+  "timestamp": "2026-05-30T10:00:00Z"
+}
+```
+**O que a API Principal deve fazer?** Ao receber esse POST, a API Principal finalmente altera o status do livro no banco para devolvido e finaliza o empréstimo da sessão. O serviço Python volta a dormir (IDLE).
 
 ---
 
-## Variáveis de Ambiente
+## 🎛️ Referência Rápida de Endpoints
 
-| Variável | Padrão | Descrição |
-|----------|--------|-----------|
-| `CAMERA_INDEX` | `0` | Índice da webcam |
-| `PORT` | `8000` | Porta do servidor |
-| `MIN_CONTOUR_AREA` | `5000` | Área mínima (px²) para considerar um objeto |
-| `DIFF_THRESHOLD` | `30` | Sensibilidade da detecção (0-255) |
-| `API_BASE_URL` | `http://localhost:3000` | URL da API NestJS |
+- **`GET /`** → Interface web amigável com a câmera ao vivo (HTML puro).
+- **`GET /health`** → Verifica se o servidor está rodando.
+- **`GET /video_feed`** → Stream de vídeo MJPEG (usado pelo Front-end).
+- **`POST /start-vision`** → Acorda o sistema e passa os dados do Webhook.
+- **`POST /config/camera`** → Troca o índice da câmera em tempo de execução (Ex: de `0` para `1`).
 
----
+## ⚙️ Variáveis de Ambiente (`.env`)
 
-## Stack
-
-- **FastAPI** — servidor HTTP
-- **OpenCV** — visão computacional
-- **NumPy** — processamento de arrays
+Crie um arquivo `.env` na raiz caso queira mudar os padrões:
+```env
+PORT=8000
+CAMERA_INDEX=1
+```
