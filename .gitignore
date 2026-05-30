@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+venv/
+.venv/
+
+# Env
+.env
+
+# Baseline images (gerados localmente)
+baseline/*.png
+
+# IDE
+.vscode/
+.idea/

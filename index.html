@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bibli — Visão Computacional</title>
+  
+  <!-- TailwindCSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#9B1B22',   /* Dark Red */
+            secondary: '#5A0F14', /* Darker Red */
+            tertiary: '#1F2937',  /* Slate 800 */
+            neutralBg: '#F3F4F6', /* Light Gray */
+          },
+          fontFamily: {
+            sans: ['Manrope', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Fonte Manrope -->
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    body { font-family: 'Manrope', sans-serif; }
+    .video-container img {
+      transition: opacity 0.3s ease;
+    }
+    /* Classe para inverter o vídeo horizontalmente */
+    .flip-horizontal {
+      transform: scaleX(-1);
+    }
+  </style>
+</head>
+<body class="bg-neutralBg text-tertiary min-h-screen flex flex-col selection:bg-primary selection:text-white">
+
+  <!-- Header (Mockup Style) -->
+  <header class="w-full bg-primary text-white h-16 flex items-center justify-between px-6 shadow-md z-10">
+    <div class="flex items-center gap-6">
+      <svg class="w-6 h-6 cursor-pointer opacity-80 hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+      <h1 class="text-xl font-bold tracking-widest">BIBLI</h1>
+    </div>
+    <div class="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 transition-colors flex items-center justify-center cursor-pointer">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <!-- Aumentado max-w-4xl para max-w-[1400px] para a div da câmera ficar enorme -->
+  <main class="w-full max-w-[1400px] mx-auto px-6 py-8 flex-1 grid grid-cols-1 xl:grid-cols-4 gap-8">
+    
+    <!-- Esquerda: Vídeo Feed (Ocupa 3 colunas) -->
+    <div class="xl:col-span-3 flex flex-col">
+      <div class="flex justify-between items-end mb-4">
+        <div>
+          <h2 class="text-3xl font-extrabold text-tertiary">Mesa de Devolução</h2>
+          <p class="text-gray-500 font-medium mt-1">Câmera de verificação de livros (Visão Computacional).</p>
+        </div>
+        <div class="inline-flex items-center space-x-2 bg-white border border-gray-200 px-3 py-1.5 rounded-full shadow-sm">
+          <span class="relative flex h-2.5 w-2.5">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+          </span>
+          <span class="text-xs font-bold text-gray-600 uppercase tracking-wider">Online</span>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-xl relative group flex-1 min-h-[400px]">
+        <!-- Live Video & Overlays -->
+        <div class="w-full h-full bg-black flex items-center justify-center relative video-container aspect-video">
+          <!-- Standby Screen -->
+          <div id="standbyScreen" class="absolute inset-0 bg-neutralBg flex flex-col items-center justify-center z-20">
+            <img src="/static/logo.png" alt="Logo Bibli" class="w-80 mb-6 object-contain drop-shadow-md" />
+            <h2 class="text-2xl font-bold text-tertiary tracking-widest mb-2">SISTEMA BLOQUEADO</h2>
+            <p class="text-gray-500 font-medium">Aguardando liberação da API principal (2ª Camada)</p>
+          </div>
+
+          <!-- Video (escondido durante o Standby) -->
+          <img id="videoFeed" src="/video_feed" alt="Feed da câmera" class="w-full h-full object-contain flip-horizontal opacity-0 transition-opacity duration-500" />
+          
+          <!-- Overlay Timer -->
+          <div id="timerOverlay" class="absolute inset-0 bg-green-900/30 backdrop-blur-sm flex flex-col items-center justify-center z-10 opacity-0 transition-opacity duration-300 pointer-events-none">
+            <div class="text-8xl font-black text-white drop-shadow-2xl" id="timerValue">10</div>
+            <div class="text-xl font-bold text-green-100 uppercase tracking-widest mt-4">Mantendo Objeto na Câmera...</div>
+          </div>
+          
+          <!-- Overlay de loading -->
+          <div id="videoLoading" class="absolute inset-0 bg-white/80 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 z-30">
+            <svg class="animate-spin h-12 w-12 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </div>
+        </div>
+        
+        <div class="absolute top-4 left-4 px-3 py-1.5 bg-white/90 backdrop-blur-md rounded-lg border border-gray-200 text-xs font-bold text-primary tracking-wider uppercase flex items-center gap-2 shadow-sm z-30">
+          <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+          Ao Vivo
+        </div>
+
+        <!-- Status de Detecção (Visão Computacional) -->
+        <div id="detectionStatus" class="absolute bottom-4 left-4 px-4 py-2 bg-gray-900/90 backdrop-blur-md rounded-lg border border-gray-700 text-sm font-bold text-gray-300 tracking-wider flex items-center gap-2 shadow-lg transition-all">
+          <div class="w-3 h-3 rounded-full bg-gray-500"></div>
+          Aguardando Calibração...
+        </div>
+
+        <!-- Botão para alternar o espelhamento manualmente -->
+        <button onclick="toggleFlip()" class="absolute bottom-4 right-4 px-4 py-2 bg-white/90 backdrop-blur rounded-lg shadow-md border border-gray-200 text-gray-700 hover:text-primary font-bold text-sm transition-all flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+            Espelhar Vídeo
+        </button>
+      </div>
+    </div>
+
+    <!-- Direita: Controles -->
+    <div class="space-y-6 pt-12 xl:pt-16">
+      
+      <!-- Card: Status da IA -->
+      <div class="bg-white rounded-2xl border border-gray-200 p-6 shadow-xl relative overflow-hidden">
+        <h3 class="text-xl font-extrabold text-tertiary mb-2 flex items-center gap-2">
+          <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+          YOLOv8 Ativo
+        </h3>
+        
+        <p class="text-sm text-gray-500 mb-6 font-medium leading-relaxed">
+          A câmera agora utiliza Inteligência Artificial nativa para detecção de objetos (Livros e Celulares) em tempo real, imune a mudanças de luz. Nenhuma calibração manual é necessária.
+        </p>
+
+        <!-- Status -->
+        <div class="mt-6 pt-5 border-t border-gray-100 flex items-center justify-between">
+          <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">Motor de Inferência</span>
+          <span id="aiStatus" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-blue-100 text-blue-700 border border-blue-200 shadow-sm">
+            Dormindo
+          </span>
+        </div>
+      </div>
+
+      <!-- Card: Câmera -->
+      <div class="bg-white rounded-2xl border border-gray-200 p-6 shadow-md">
+        <h3 class="text-sm font-extrabold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+          Configurações
+        </h3>
+        
+        <label class="block text-sm font-bold text-tertiary mb-2">Webcam selecionada:</label>
+        <div class="relative">
+          <select id="cameraSelect" onchange="changeCamera()" class="w-full appearance-none bg-neutralBg border border-gray-200 text-tertiary font-bold rounded-xl px-4 py-3 pr-10 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all cursor-pointer">
+            <option value="0">Câmera 0 (Embutida)</option>
+            <option value="1">Câmera 1 (Ex: 4K)</option>
+            <option value="2">Câmera 2</option>
+            <option value="3">Câmera 3</option>
+            <option value="4">Câmera 4</option>
+          </select>
+          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Notificação Toast -->
+  <div id="toast" class="fixed bottom-6 right-6 transform translate-y-20 opacity-0 transition-all duration-300 flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-5 py-4 shadow-2xl z-50">
+    <div id="toastIcon" class="w-8 h-8 rounded-full flex items-center justify-center"></div>
+    <div>
+      <h4 id="toastTitle" class="text-sm font-bold text-tertiary">Notificação</h4>
+      <p id="toastMsg" class="text-xs font-medium text-gray-500">Mensagem.</p>
+    </div>
+  </div>
+
+  <script>
+    const videoFeed = document.getElementById('videoFeed');
+    const videoLoading = document.getElementById('videoLoading');
+    const cameraSelect = document.getElementById('cameraSelect');
+    const toast = document.getElementById('toast');
+    const standbyScreen = document.getElementById('standbyScreen');
+    const timerOverlay = document.getElementById('timerOverlay');
+    const timerValue = document.getElementById('timerValue');
+    const aiStatus = document.getElementById('aiStatus');
+    const detectionStatus = document.getElementById('detectionStatus');
+
+    const iconSuccess = `<div class="bg-green-100 text-green-600 w-full h-full rounded-full flex items-center justify-center"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></div>`;
+    const iconError = `<div class="bg-red-100 text-red-600 w-full h-full rounded-full flex items-center justify-center"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></div>`;
+
+    let toastTimeout;
+
+    function showToast(title, msg, type = 'success') {
+      document.getElementById('toastTitle').textContent = title;
+      document.getElementById('toastMsg').textContent = msg;
+      document.getElementById('toastIcon').innerHTML = type === 'success' ? iconSuccess : iconError;
+      
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 4000);
+    }
+
+    function toggleFlip() {
+      videoFeed.classList.toggle('flip-horizontal');
+    }
+
+    async function changeCamera() {
+      const idx = parseInt(cameraSelect.value);
+      if (videoLoading) videoLoading.classList.remove('opacity-0');
+      
+      try {
+        const res = await fetch('/config/camera', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ camera_index: idx })
+        });
+        
+        if (!res.ok) throw new Error("Erro na API");
+        
+        setTimeout(() => {
+          videoFeed.src = `/video_feed?t=${new Date().getTime()}`;
+          videoFeed.onload = () => {
+            if (videoLoading) videoLoading.classList.add('opacity-0');
+            showToast("Sucesso", `Trocado para a câmera ${idx}`);
+          };
+          setTimeout(() => { if (videoLoading) videoLoading.classList.add('opacity-0'); }, 2000);
+        }, 500);
+
+      } catch (err) {
+        if (videoLoading) videoLoading.classList.add('opacity-0');
+        showToast("Erro", "Não foi possível mudar a câmera.", "error");
+      }
+    }
+
+    async function pollState() {
+      try {
+        const res = await fetch('/health');
+        const data = await res.json();
+        
+        // Sync Dropdown
+        if (document.activeElement !== cameraSelect) {
+            cameraSelect.value = data.camera_index.toString();
+        }
+
+        const state = data.app_state;
+        const time_left = data.time_left;
+
+        if (state === 'IDLE') {
+            standbyScreen.classList.remove('opacity-0', 'pointer-events-none');
+            videoFeed.classList.add('opacity-0');
+            timerOverlay.classList.add('opacity-0');
+            aiStatus.innerHTML = "Dormindo";
+            aiStatus.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-gray-100 text-gray-500 border border-gray-200";
+            detectionStatus.innerHTML = `<div class="w-3 h-3 rounded-full bg-gray-500"></div> Standby`;
+            detectionStatus.className = "absolute bottom-4 left-4 px-4 py-2 bg-gray-900/90 backdrop-blur-md rounded-lg border border-gray-700 text-sm font-bold text-gray-300 tracking-wider flex items-center gap-2 shadow-lg transition-all z-30";
+        } 
+        else if (state === 'AWAITING' || state === 'VALIDATING') {
+            standbyScreen.classList.add('opacity-0', 'pointer-events-none');
+            videoFeed.classList.remove('opacity-0');
+            aiStatus.innerHTML = `<svg class="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Rodando Livre`;
+            aiStatus.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-blue-100 text-blue-700 border border-blue-200 shadow-sm";
+
+            if (state === 'VALIDATING') {
+                timerOverlay.classList.remove('opacity-0');
+                timerValue.innerText = time_left.toString();
+                detectionStatus.className = "absolute bottom-4 left-4 px-4 py-3 bg-green-500/95 backdrop-blur-md rounded-lg border border-green-400 text-base font-extrabold text-white tracking-widest flex items-center gap-3 shadow-2xl transition-all transform scale-105 z-30";
+                detectionStatus.innerHTML = `<div class="w-4 h-4 rounded-full bg-white animate-pulse"></div> LENDO OBJETO...`;
+            } else {
+                timerOverlay.classList.add('opacity-0');
+                detectionStatus.className = "absolute bottom-4 left-4 px-4 py-2 bg-gray-900/80 backdrop-blur-md rounded-lg border border-gray-700 text-sm font-bold text-gray-300 tracking-wider flex items-center gap-2 shadow-lg transition-all z-30";
+                detectionStatus.innerHTML = `<div class="w-3 h-3 rounded-full bg-blue-500 animate-pulse"></div> Procurando Objeto...`;
+            }
+        }
+        else if (state === 'DONE') {
+            timerOverlay.classList.add('opacity-0');
+            detectionStatus.className = "absolute bottom-4 left-4 px-4 py-3 bg-blue-600/95 backdrop-blur-md rounded-lg border border-blue-400 text-base font-extrabold text-white tracking-widest flex items-center gap-3 shadow-2xl transition-all transform scale-105 z-30";
+            detectionStatus.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> DEVOLUÇÃO CONCLUÍDA!`;
+        }
+
+      } catch (err) {}
+    }
+
+    // Polling rápido para pegar o timer em tempo real
+    setInterval(pollState, 300);
+
+
+  </script>
+</body>
+</html>
